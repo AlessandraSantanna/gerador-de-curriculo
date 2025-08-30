@@ -1,15 +1,14 @@
-import { RouterProvider } from "react-router-dom";
-import router from "./routes";
+import { Routes, Route } from "react-router-dom";
+import Home from "./pages/Home";
+import Generator from "./pages/Generator";
 
 function App() {
-
-
   return (
-    <div className="App">
-     
-      <RouterProvider router={router} />
-    </div>
-  )
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/generator" element={<Generator />} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;

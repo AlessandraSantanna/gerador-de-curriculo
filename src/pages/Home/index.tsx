@@ -2,6 +2,7 @@ import './index.css';
 import foto from "../../assets/foto.jpg";
 import { Link } from "react-router-dom";
 
+
 const Home = () => {
   return (
     <div className="home-container">

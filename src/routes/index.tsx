@@ -1,8 +1,7 @@
-import * as React from "react";
 import { createBrowserRouter } from "react-router-dom";
 import Home from "../pages/Home";
 import Generator from "../pages/Generator";
-import Visualizer from "../pages/Visualizer";
+
 
 const router = createBrowserRouter([
   {
@@ -13,10 +12,7 @@ const router = createBrowserRouter([
     path: "generator",
     element: <Generator />,
   },
-  {
-    path: "visualizer",
-    element: <Visualizer />,
-  },
+  
 ]);
 
 export default router;

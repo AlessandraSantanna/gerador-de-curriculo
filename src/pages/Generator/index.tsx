@@ -5,17 +5,48 @@ import {
   FaGlobe, FaLanguage, FaHeart, FaTrash 
 } from "react-icons/fa";
 
-const Generator = () => {
-  const createItem = (value = "") => ({ id: crypto.randomUUID(), value });
+// Tipo para itens dinâmicos (websites, skills, etc.)
+type Item = {
+  id: string;
+  value: string;
+};
 
-  const [resumeData, setResumeData] = useState({
+// Tipo do estado principal do currículo
+interface ResumeData {
+  personalInfo: {
+    fullName: string;
+    email: string;
+    phone: string;
+    country: string;
+    city: string;
+    photo: string; // base64
+  };
+  professionalSummary: string;
+  websites: Item[];
+  professionalHistory: Item[];
+  education: Item[];
+  skills: Item[];
+  languages: Item[];
+  hobbies: Item[];
+}
+
+// Chaves válidas para seções de array
+type SectionKey = keyof Pick<
+  ResumeData,
+  "websites" | "professionalHistory" | "education" | "skills" | "languages" | "hobbies"
+>;
+
+const Generator = () => {
+  const createItem = (value = ""): Item => ({ id: crypto.randomUUID(), value });
+
+  const [resumeData, setResumeData] = useState<ResumeData>({
     personalInfo: {
       fullName: '',
       email: '',
       phone: '',
       country: '',
       city: '',
-      photo: '', // <-- foto em base64
+      photo: '',
     },
     professionalSummary: '',
     websites: [createItem()],
@@ -37,34 +68,38 @@ const Generator = () => {
           personalInfo: { ...prev.personalInfo, photo: reader.result as string },
         }));
       };
-      reader.readAsDataURL(file); // converte para base64
+      reader.readAsDataURL(file);
     }
   };
 
   // Atualiza campos de arrays
-  const handleArrayChange = (section: string, id: string, value: string) => {
-    const updated = (resumeData as any)[section].map((item: any) =>
+  const handleArrayChange = (section: SectionKey, id: string, value: string) => {
+    const updated = resumeData[section].map((item) =>
       item.id === id ? { ...item, value } : item
     );
     setResumeData({ ...resumeData, [section]: updated });
   };
 
   // Adiciona novo campo
-  const addField = (section: string) => {
+  const addField = (section: SectionKey) => {
     setResumeData((prev) => ({
       ...prev,
-      [section]: [...(prev as any)[section], { id: crypto.randomUUID(), value: "" }],
+      [section]: [...prev[section], { id: crypto.randomUUID(), value: "" }],
     }));
   };
 
   // Remove campo
-  const removeField = (section: string, id: string) => {
-    const updated = (resumeData as any)[section].filter((item: any) => item.id !== id);
+  const removeField = (section: SectionKey, id: string) => {
+    const updated = resumeData[section].filter((item) => item.id !== id);
     setResumeData({ ...resumeData, [section]: updated });
   };
 
   // Atualiza personalInfo
-  const handleChange = (section: string, field: string, value: string) => {
+  const handleChange = (
+    section: "personalInfo",
+    field: keyof ResumeData["personalInfo"],
+    value: string
+  ) => {
     setResumeData((prev) => ({
       ...prev,
       [section]: {
@@ -125,21 +160,21 @@ const Generator = () => {
           ].map(({ key, title, icon, color }) => (
             <div key={key}>
               <h2 className={`section-title ${color}`}>{icon} {title}</h2>
-              {(resumeData as any)[key].map((item: any) => (
+              {resumeData[key as SectionKey].map((item) => (
                 <div className="input-row" key={item.id}>
                   <input
                     type="text"
                     placeholder={`${title}`}
                     value={item.value}
-                    onChange={(e) => handleArrayChange(key, item.id, e.target.value)}
+                    onChange={(e) => handleArrayChange(key as SectionKey, item.id, e.target.value)}
                   />
                   <button type="button" className="remove-btn"
-                    onClick={() => removeField(key, item.id)}>
+                    onClick={() => removeField(key as SectionKey, item.id)}>
                     <FaTrash />
                   </button>
                 </div>
               ))}
-              <button type="button" onClick={() => addField(key)}>+ Adicionar {title}</button>
+              <button type="button" onClick={() => addField(key as SectionKey)}>+ Adicionar {title}</button>
             </div>
           ))}
         </form>
@@ -173,11 +208,11 @@ const Generator = () => {
           { key: "languages", title: "Idiomas", icon: <FaLanguage />, color: "lang" },
           { key: "hobbies", title: "Hobbies", icon: <FaHeart />, color: "hobbies" },
         ].map(({ key, title, icon, color }) => (
-          (resumeData as any)[key].some((item: any) => item.value) && (
+          resumeData[key as SectionKey].some((item) => item.value) && (
             <div key={key}>
               <h2 className={`section-title ${color}`}>{icon} {title}</h2>
               <ul>
-                {(resumeData as any)[key].map((item: any) =>
+                {resumeData[key as SectionKey].map((item) =>
                   item.value && <li key={item.id}>{item.value}</li>
                 )}
               </ul>
@@ -186,9 +221,7 @@ const Generator = () => {
         ))}
       </div>
     </div>
-
   );
-
 };
 
 export default Generator;

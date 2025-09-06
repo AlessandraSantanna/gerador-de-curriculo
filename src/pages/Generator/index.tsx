@@ -1,8 +1,9 @@
-import './index.css';
-import { useState } from 'react';
-import { 
-  FaUser, FaBriefcase, FaGraduationCap, FaTools, 
-  FaGlobe, FaLanguage, FaHeart, FaTrash 
+import "./index.css"; 
+import { useNavigate } from "react-router-dom";
+import { useState, type ChangeEvent } from "react";
+import {
+  FaUser, FaBriefcase, FaGraduationCap, FaTools,
+  FaGlobe, FaLanguage, FaHeart, FaTrash
 } from "react-icons/fa";
 
 // Tipo para itens dinâmicos (websites, skills, etc.)
@@ -12,7 +13,7 @@ type Item = {
 };
 
 // Tipo do estado principal do currículo
-interface ResumeData {
+export interface ResumeData {
   personalInfo: {
     fullName: string;
     email: string;
@@ -36,19 +37,35 @@ type SectionKey = keyof Pick<
   "websites" | "professionalHistory" | "education" | "skills" | "languages" | "hobbies"
 >;
 
+const sections: Array<{
+  key: SectionKey;
+  title: string;
+  icon: React.ReactNode;
+  color: string;
+}> = [
+  { key: "websites", title: "Websites/LinkedIn", icon: <FaGlobe />, color: "web" },
+  { key: "professionalHistory", title: "Histórico Profissional", icon: <FaBriefcase />, color: "history" },
+  { key: "education", title: "Educação", icon: <FaGraduationCap />, color: "edu" },
+  { key: "skills", title: "Habilidades", icon: <FaTools />, color: "skills" },
+  { key: "languages", title: "Idiomas", icon: <FaLanguage />, color: "lang" },
+  { key: "hobbies", title: "Hobbies", icon: <FaHeart />, color: "hobbies" },
+];
+
 const Generator = () => {
+  const navigate = useNavigate();
+
   const createItem = (value = ""): Item => ({ id: crypto.randomUUID(), value });
 
   const [resumeData, setResumeData] = useState<ResumeData>({
     personalInfo: {
-      fullName: '',
-      email: '',
-      phone: '',
-      country: '',
-      city: '',
-      photo: '',
+      fullName: "",
+      email: "",
+      phone: "",
+      country: "",
+      city: "",
+      photo: "",
     },
-    professionalSummary: '',
+    professionalSummary: "",
     websites: [createItem()],
     professionalHistory: [createItem()],
     education: [createItem()],
@@ -57,19 +74,20 @@ const Generator = () => {
     hobbies: [createItem()],
   });
 
-  // Upload da foto
-  const handlePhotoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
+  // Upload da foto (salva como base64)
+  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setResumeData((prev) => ({
-          ...prev,
-          personalInfo: { ...prev.personalInfo, photo: reader.result as string },
-        }));
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setResumeData((prev) => ({
+        ...prev,
+        personalInfo: { ...prev.personalInfo, photo: reader.result as string },
+      }));
+    };
+    reader.readAsDataURL(file);
   };
 
   // Atualiza campos de arrays
@@ -109,40 +127,102 @@ const Generator = () => {
     }));
   };
 
+  // Função para melhorar o resumo via IA
+  const handleImproveSummary = async () => {
+    if (!resumeData.professionalSummary.trim()) return;
+
+    setLoadingSummary(true);
+    try {
+      const response = await fetch("http://localhost:3001/api/improve-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: resumeData.professionalSummary }),
+      });
+
+      const data = await response.json();
+
+      if (data.improvedText) {
+        setResumeData((prev) => ({
+          ...prev,
+          professionalSummary: data.improvedText,
+        }));
+      }
+    } catch (error) {
+      console.error("Erro ao melhorar o resumo:", error);
+      alert("Não foi possível melhorar o resumo. Tente novamente.");
+    } finally {
+      setLoadingSummary(false);
+    }
+  };
+
+  // Envia todos os dados para o Visualizer
+  const handleVisualize = () => {
+    navigate("/visualizer", { state: resumeData });
+  };
+
   return (
     <div className="container">
       {/* Esquerda = Form */}
       <div className="form-section">
         <form>
           <h2 className="section-title personal"><FaUser /> Informações Pessoais</h2>
-          
+
           {/* Upload da foto */}
-          <label>Foto 3x4:</label>
+          <label>Foto:</label>
           <input type="file" accept="image/*" onChange={handlePhotoUpload} />
 
-          <input type="text" placeholder="Nome Completo"
+          <input
+            type="text"
+            placeholder="Nome Completo"
             value={resumeData.personalInfo.fullName}
             onChange={(e) => handleChange("personalInfo", "fullName", e.target.value)}
           />
-          <input type="email" placeholder="Email"
+          <input
+            type="email"
+            placeholder="Email"
             value={resumeData.personalInfo.email}
             onChange={(e) => handleChange("personalInfo", "email", e.target.value)}
           />
-          <input type="tel" placeholder="Telefone"
+          <input
+            type="tel"
+            placeholder="Telefone"
             value={resumeData.personalInfo.phone}
             onChange={(e) => handleChange("personalInfo", "phone", e.target.value)}
           />
-          <input type="text" placeholder="País"
+          <input
+            type="text"
+            placeholder="País"
             value={resumeData.personalInfo.country}
             onChange={(e) => handleChange("personalInfo", "country", e.target.value)}
           />
-          <input type="text" placeholder="Cidade"
+          <input
+            type="text"
+            placeholder="Cidade"
             value={resumeData.personalInfo.city}
             onChange={(e) => handleChange("personalInfo", "city", e.target.value)}
           />
 
-          <h2 className="section-title summary"><FaBriefcase /> Resumo Profissional</h2>
-          <textarea placeholder="Digite um breve resumo..."
+          <h2 className="section-title summary">
+            <FaBriefcase /> Resumo Profissional
+            <button
+              type="button"
+              onClick={handleImproveSummary}
+              disabled={loadingSummary}
+              style={{
+                marginLeft: "10px",
+                padding: "4px 8px",
+                background: "#2563eb",
+                color: "white",
+                border: "none",
+                borderRadius: "4px",
+                cursor: loadingSummary ? "not-allowed" : "pointer"
+              }}
+            >
+              {loadingSummary ? "Melhorando..." : "✨ Melhorar com IA"}
+            </button>
+          </h2>
+          <textarea
+            placeholder="Digite um breve resumo..."
             value={resumeData.professionalSummary}
             onChange={(e) =>
               setResumeData({ ...resumeData, professionalSummary: e.target.value })
@@ -150,48 +230,53 @@ const Generator = () => {
           />
 
           {/* Campos Dinâmicos */}
-          {[
-            { key: "websites", title: "Websites", icon: <FaGlobe />, color: "web" },
-            { key: "professionalHistory", title: "Histórico Profissional", icon: <FaBriefcase />, color: "history" },
-            { key: "education", title: "Educação", icon: <FaGraduationCap />, color: "edu" },
-            { key: "skills", title: "Habilidades", icon: <FaTools />, color: "skills" },
-            { key: "languages", title: "Idiomas", icon: <FaLanguage />, color: "lang" },
-            { key: "hobbies", title: "Hobbies", icon: <FaHeart />, color: "hobbies" },
-          ].map(({ key, title, icon, color }) => (
+          {sections.map(({ key, title, icon, color }) => (
             <div key={key}>
               <h2 className={`section-title ${color}`}>{icon} {title}</h2>
-              {resumeData[key as SectionKey].map((item) => (
+              {resumeData[key].map((item) => (
                 <div className="input-row" key={item.id}>
                   <input
                     type="text"
-                    placeholder={`${title}`}
+                    placeholder={title}
                     value={item.value}
-                    onChange={(e) => handleArrayChange(key as SectionKey, item.id, e.target.value)}
+                    onChange={(e) => handleArrayChange(key, item.id, e.target.value)}
                   />
-                  <button type="button" className="remove-btn"
-                    onClick={() => removeField(key as SectionKey, item.id)}>
+                  <button
+                    type="button"
+                    className="remove-btn"
+                    onClick={() => removeField(key, item.id)}
+                    aria-label={`Remover ${title}`}
+                  >
                     <FaTrash />
                   </button>
                 </div>
               ))}
-              <button type="button" onClick={() => addField(key as SectionKey)}>+ Adicionar {title}</button>
+              <button type="button" onClick={() => addField(key)}>
+                + Adicionar {title}
+              </button>
             </div>
           ))}
         </form>
+
+        {/* Botão para visualizar/gerar PDF na outra página */}
+        <div style={{ marginTop: "1rem" }}>
+          <button type="button" onClick={handleVisualize}>
+            Visualizar Currículo
+          </button>
+        </div>
       </div>
 
       {/* Direita = Preview */}
       <div className="preview-section">
-      
         {/* Foto 3x4 */}
         {resumeData.personalInfo.photo && (
-          <img 
-            src={resumeData.personalInfo.photo} 
-            alt="Foto 3x4" 
-            className="foto-3x4" 
+          <img
+            src={resumeData.personalInfo.photo}
+            alt="Foto 3x4"
+            className="foto-3x4"
           />
         )}
-      
+
         <h1>{resumeData.personalInfo.fullName || " Seu Nome Aqui"}</h1>
         <p>{resumeData.personalInfo.email}</p>
         <p>{resumeData.personalInfo.phone}</p>
@@ -200,19 +285,12 @@ const Generator = () => {
         <h2 className="summary"><FaBriefcase /> Resumo Profissional</h2>
         <p>{resumeData.professionalSummary}</p>
 
-        {[
-          { key: "websites", title: "Websites", icon: <FaGlobe />, color: "web" },
-          { key: "professionalHistory", title: "Histórico Profissional", icon: <FaBriefcase />, color: "history" },
-          { key: "education", title: "Educação", icon: <FaGraduationCap />, color: "edu" },
-          { key: "skills", title: "Habilidades", icon: <FaTools />, color: "skills" },
-          { key: "languages", title: "Idiomas", icon: <FaLanguage />, color: "lang" },
-          { key: "hobbies", title: "Hobbies", icon: <FaHeart />, color: "hobbies" },
-        ].map(({ key, title, icon, color }) => (
-          resumeData[key as SectionKey].some((item) => item.value) && (
+        {sections.map(({ key, title, icon, color }) => (
+          resumeData[key].some((item) => item.value) && (
             <div key={key}>
               <h2 className={`section-title ${color}`}>{icon} {title}</h2>
               <ul>
-                {resumeData[key as SectionKey].map((item) =>
+                {resumeData[key].map((item) =>
                   item.value && <li key={item.id}>{item.value}</li>
                 )}
               </ul>
